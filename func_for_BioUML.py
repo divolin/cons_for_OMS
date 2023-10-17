@@ -2,6 +2,7 @@ from Bio import SeqIO
 import numpy as np
 import subprocess
 from tqdm import tqdm
+import sys
 
 def read_sam(path_to_reads):
     sequence = []
@@ -415,6 +416,8 @@ def run_consensus(path_to_reads):
         sequence = read_fastq(path_to_reads)
     elif path_to_reads[-5:] == 'fasta':
         sequence = read_fasta(path_to_reads)
+    else:
+        sys.exit('Error: accepted input file extensions are .sam, fastq and .fasta')
     write_seq_in_file_with_length('myreads.fasta', sequence, 0, 0)
 
     # подсчёт средней длины последовательности, чтобы избавиться от слишком коротких и слишком длинных последовательностей
