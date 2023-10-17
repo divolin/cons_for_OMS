@@ -3,6 +3,7 @@ import numpy as np
 import subprocess
 from tqdm import tqdm
 import sys
+import os
 
 def read_sam(path_to_reads):
     sequence = []
@@ -102,16 +103,16 @@ def write_seq_in_file_with_length_and_name(name_file, list_seq, name_seq, start,
                 f.write(i[start:end] +'\n')
     return
 
-def muscle(path_in, path_out):
+def muscle(path_in, path_out, muscle_bin_full_path):
     # Функция запуска программы MUSCLE с штрафом за пропуск = 2
-    command = f"./muscle3.8.31_i86linux64 -gapopen -2 -in {path_in} -out {path_out} -quiet"
+    command = f"{muscle_bin_full_path} -gapopen -2 -in {path_in} -out {path_out} -quiet"
     subprocess.run(command, shell=True)
     return
 
 
-def muscle_with_gap1000(path_in, path_out):
+def muscle_with_gap1000(path_in, path_out, muscle_bin_full_path):
     # Функция запуска программы MUSCLE с штрафом за пропуск = 1000
-    command = f"./muscle3.8.31_i86linux64 -gapopen -2000 -in {path_in} -out {path_out} -quiet"
+    command = f"{muscle_bin_full_path} -gapopen -2000 -in {path_in} -out {path_out} -quiet"
     subprocess.run(command, shell=True)
     return
 
@@ -407,9 +408,7 @@ def convert_to_phred(list_score):
         list_phred += chr(phred + 33)
     return list_phred
 
-def run_consensus(path_to_reads):
-
-
+def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
     if path_to_reads[-3:] == 'sam':
         sequence = read_sam(path_to_reads)
     elif path_to_reads[-5:] == 'fastq':
@@ -418,6 +417,9 @@ def run_consensus(path_to_reads):
         sequence = read_fasta(path_to_reads)
     else:
         sys.exit('Error: accepted input file extensions are .sam, fastq and .fasta')
+    old_work_dir = os.getcwd()
+    os.chdir(path_to_outdir)
+
     write_seq_in_file_with_length('myreads.fasta', sequence, 0, 0)
 
     # подсчёт средней длины последовательности, чтобы избавиться от слишком коротких и слишком длинных последовательностей
@@ -468,10 +470,12 @@ def run_consensus(path_to_reads):
                         continue
                 if gap_flag:
                     list_use_seq.append(sequence[j])
-                    list_use_seq_index.append(j)    
+                    list_use_seq_index.append(j)
 
+        if not os.path.exits('allig'):
+            os.mkdir(allig)
         write_seq_in_file_with_length_and_name(f'allig/reads_{indi}-{indi + 80}.fasta', list_use_seq, list_use_seq_index, indi, indi + 80)
-        muscle(f'allig/reads_{indi}-{indi + 80}.fasta', f'allig/allig_{indi}-{indi + 80}.fasta')
+        muscle(f'allig/reads_{indi}-{indi + 80}.fasta', f'allig/allig_{indi}-{indi + 80}.fasta', muscle_bin_full_path)
 
         list_seq_with_insert = []
         sorted_seqs = sort_fasta(f'allig/allig_{indi}-{indi + 80}.fasta')
@@ -536,4 +540,5 @@ def run_consensus(path_to_reads):
     list_prob_quality = quality(list_seq)
     phred_string = convert_to_phred(list_prob_quality)
     write_fastq('consensus.fastq', consi[0][:-100], phred_string)
+    os.chdir(old_work_dir)
     return
