@@ -426,54 +426,37 @@ def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
     alligment = read_seq_from_file('myreads.fasta')
     avg_length = sum(len(word) for word in alligment) / len(alligment)
     list_allig = []
-    list_need_seq = []
     for j, i in enumerate(alligment):
         if len(i) >= avg_length / 1.6 or len(i) <= avg_length / 0.66:
             list_allig.append(i)
-            list_need_seq.append(j)
     write_seq_in_file_with_length('myreads.fasta', list_allig, 0, 0)
 
-    # Стартовые позиции последовательности, у нас всегда 0
-    list_startpos = []
-    for i in list_allig:
-        list_startpos.append(0)
-
-    # Узнавание какая последовательность самая длинная и её индекс
     sequence = read_seq_from_file('myreads.fasta')
-    maxi_index = max([len(word) for word in sequence])
-    index_max = 0
-    for j, i in enumerate(sequence):
-        if len(i) == maxi_index:
-            index_max = j
+
+    if not os.path.exists('allig'):
+            os.mkdir('allig')
+    else:
+        for item in os.listdir('allig'):
+            os.remove(f'allig/{item}')
 
     # Основная часть, в которой сначала проверяется подходит ли нам последовательность учитывая стартовую позицию
     # Далее отрезается часть последовательности от indi до indi + 80, где indi это индекс, который увеличивается на половину длины выравнивания 
     # Далее считается количество пропусков и нуклеотидов и заменяется в изначальных последовательностях куски нуклеотидов на выравненные 
-    list_already_use = []
-    list_lish_gap = []
     indi = 0
-    count_nucl = 0
-    for start in tqdm(range(0, 20000, 40)):
+    for _ in tqdm(range(0, 20000, 40)):
         list_use_seq = []
         list_use_seq_index = []
-        
-
         for j, seq in enumerate(sequence):
-            if count_nucl >= list_startpos[j]:
-                if j not in list_already_use:
-                    sequence[j] = indi * '-' + seq + (10000 - len(seq) - list_startpos[j]) * '-'
-                    list_already_use.append(j)
-                gap_flag = False
-                for i in seq[indi:indi + 80]:
-                    if i != '-':
-                        gap_flag = True
-                        continue
-                if gap_flag:
-                    list_use_seq.append(sequence[j])
-                    list_use_seq_index.append(j)
+            gap_flag = False
+            for i in seq[indi:indi + 80]:
+                if i != '-':
+                    gap_flag = True
+                    continue
+            if gap_flag:
+                list_use_seq.append(sequence[j])
+                list_use_seq_index.append(j)
 
-        if not os.path.exits('allig'):
-            os.mkdir(allig)
+        
         write_seq_in_file_with_length_and_name(f'allig/reads_{indi}-{indi + 80}.fasta', list_use_seq, list_use_seq_index, indi, indi + 80)
         muscle(f'allig/reads_{indi}-{indi + 80}.fasta', f'allig/allig_{indi}-{indi + 80}.fasta', muscle_bin_full_path)
 
@@ -500,8 +483,6 @@ def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
             alligment[i] = alligment[i][:tmp]
 
         for j, i in enumerate(list_use_seq_index):
-            if i == index_max:
-                count_nucl += int(list_allig_index[j] * 0.93)
             sequence[i] = sequence[i][:indi] + alligment[j] + sequence[i][list_allig_index[j] + indi:]
         indi += tmp
 
@@ -517,16 +498,13 @@ def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
     write_seq_in_file_with_length('allig_seq.fasta', sequence, 0, 0)
 
     # Постройка консенсуса 
-    list_consensus = []
     alligment = read_seq_from_file('allig_seq.fasta')
     count_nucl = per_nucl_in_cal(alligment)
     count_gap = count_gaps (alligment)
     alligment = delete_gap(alligment, count_gap, count_nucl, 50 / 100)
     # Запись множественного выравнивания в файл
     write_seq_in_file_with_length('multiple_alignment.fasta', alligment, 0, 0)
-    pi = start_probability (alligment)
     a = matrix_of_MDI(alligment)
-    A = probability_of_trans(alligment, a)
     count = count_nucl_in_cal(alligment)
     b = percetn_of_nucl_in_cal(count)
     consensuss = consensus(alligment, b)
