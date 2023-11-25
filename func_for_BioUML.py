@@ -448,7 +448,7 @@ def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
         list_use_seq_index = []
         for j, seq in enumerate(sequence):
             gap_flag = False
-            for i in seq[indi:indi + 80]:
+            for i in seq[indi:indi + 50]:
                 if i != '-':
                     gap_flag = True
                     continue
@@ -457,16 +457,16 @@ def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
                 list_use_seq_index.append(j)
 
         
-        write_seq_in_file_with_length_and_name(f'allig/reads_{indi}-{indi + 80}.fasta', list_use_seq, list_use_seq_index, indi, indi + 80)
-        muscle(f'allig/reads_{indi}-{indi + 80}.fasta', f'allig/allig_{indi}-{indi + 80}.fasta', muscle_bin_full_path)
+        write_seq_in_file_with_length_and_name(f'allig/reads_{indi}-{indi + 50}.fasta', list_use_seq, list_use_seq_index, indi, indi + 50)
+        muscle(f'allig/reads_{indi}-{indi + 50}.fasta', f'allig/allig_{indi}-{indi + 50}.fasta', muscle_bin_full_path)
 
         list_seq_with_insert = []
-        sorted_seqs = sort_fasta(f'allig/allig_{indi}-{indi + 80}.fasta')
+        sorted_seqs = sort_fasta(f'allig/allig_{indi}-{indi + 50}.fasta')
         for rec in sorted_seqs:
             list_seq_with_insert.append(str(rec.seq))
-        write_seq_in_file_with_length_and_name(f'allig/allig_{indi}-{indi + 80}.fasta', list_seq_with_insert, list_use_seq_index,  0, 0)
+        write_seq_in_file_with_length_and_name(f'allig/allig_{indi}-{indi + 50}.fasta', list_seq_with_insert, list_use_seq_index,  0, 0)
 
-        alligment = read_seq_from_file(f'allig/allig_{indi}-{indi + 80}.fasta')
+        alligment = read_seq_from_file(f'allig/allig_{indi}-{indi + 50}.fasta')
 
 
 
@@ -514,9 +514,196 @@ def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
     consi = read_seq_from_file('consensus.fasta')
     multiple_allig = read_seq_from_file('multiple_alignment.fasta')
     list_seq = consi + multiple_allig
-    write_seq_in_file_with_length('consensus_and_multiple.fasta', list_seq, 0, 0)
     list_prob_quality = quality(list_seq)
     phred_string = convert_to_phred(list_prob_quality)
     write_fastq('consensus.fastq', consi[0][:-100], phred_string)
+    os.remove('consensus.fasta')
     os.chdir(old_work_dir)
     return
+
+
+
+def run_consensus_compl(path_to_reads, path_to_outdir,muscle_bin_full_path):
+    if path_to_reads[-3:] == 'sam':
+        sequence = read_sam(path_to_reads)
+    elif path_to_reads[-5:] == 'fastq':
+        sequence = read_fastq(path_to_reads)
+    elif path_to_reads[-5:] == 'fasta':
+        sequence = read_fasta(path_to_reads)
+    else:
+        sys.exit('Error: accepted input file extensions are .sam, fastq and .fasta')
+    old_work_dir = os.getcwd()
+    os.chdir(path_to_outdir)
+
+    write_seq_in_file_with_length('myreads.fasta', sequence, 0, 0)
+
+    # подсчёт средней длины последовательности, чтобы избавиться от слишком коротких и слишком длинных последовательностей
+    alligment = read_seq_from_file('myreads.fasta')
+    avg_length = sum(len(word) for word in alligment) / len(alligment)
+    list_allig = []
+    for j, i in enumerate(alligment):
+        if len(i) >= avg_length / 1.6 or len(i) <= avg_length / 0.66:
+            list_allig.append(i)
+    write_seq_in_file_with_length('myreads.fasta', list_allig, 0, 0)
+
+    sequence = read_seq_from_file('myreads.fasta')
+
+    if not os.path.exists('allig_compl'):
+            os.mkdir('allig_compl')
+    else:
+        for item in os.listdir('allig_compl'):
+            os.remove(f'allig_compl/{item}')
+
+    # Основная часть, в которой сначала проверяется подходит ли нам последовательность учитывая стартовую позицию
+    # Далее отрезается часть последовательности от indi до indi + 80, где indi это индекс, который увеличивается на половину длины выравнивания 
+    # Далее считается количество пропусков и нуклеотидов и заменяется в изначальных последовательностях куски нуклеотидов на выравненные 
+    indi = 0
+    for _ in tqdm(range(0, 20000, 40)):
+        list_use_seq = []
+        list_use_seq_index = []
+        for j, seq in enumerate(sequence):
+            gap_flag = False
+            for i in seq[indi:indi + 80]:
+                if i != '-':
+                    gap_flag = True
+                    continue
+            if gap_flag:
+                list_use_seq.append(sequence[j])
+                list_use_seq_index.append(j)
+
+        
+        write_seq_in_file_with_length_and_name(f'allig_compl/reads_{indi}-{indi + 80}.fasta', list_use_seq, list_use_seq_index, indi, indi + 80)
+        muscle(f'allig_compl/reads_{indi}-{indi + 80}.fasta', f'allig_compl/allig_{indi}-{indi + 80}.fasta', muscle_bin_full_path)
+
+        list_seq_with_insert = []
+        sorted_seqs = sort_fasta(f'allig_compl/allig_{indi}-{indi + 80}.fasta')
+        for rec in sorted_seqs:
+            list_seq_with_insert.append(str(rec.seq))
+        write_seq_in_file_with_length_and_name(f'allig_compl/allig_{indi}-{indi + 80}.fasta', list_seq_with_insert, list_use_seq_index,  0, 0)
+
+        alligment = read_seq_from_file(f'allig_compl/allig_{indi}-{indi + 80}.fasta')
+
+
+
+        tmp = int(0.5 * len(alligment[0]))
+
+        list_allig_index = []
+        list_count_gap = []
+        for j, seq in enumerate(alligment):
+            tmp2 = seq[:tmp].count('-')
+            list_count_gap.append(tmp2)
+            list_allig_index.append(tmp - tmp2)
+        
+        for i in range(len(alligment)):
+            alligment[i] = alligment[i][:tmp]
+
+        for j, i in enumerate(list_use_seq_index):
+            sequence[i] = sequence[i][:indi] + alligment[j] + sequence[i][list_allig_index[j] + indi:]
+        indi += tmp
+
+    # Дополнение строк до одинаковой длины
+    list_length = []
+    for i in sequence:
+        list_length.append(len(i))
+    maxi = max(list_length)
+    for j, i in enumerate(sequence):
+        while len(sequence[j]) < maxi:
+            sequence[j] = sequence[j] + '-'
+
+    write_seq_in_file_with_length('allig_seq_compl.fasta', sequence, 0, 0)
+
+    # Постройка консенсуса 
+    alligment = read_seq_from_file('allig_seq_compl.fasta')
+    count_nucl = per_nucl_in_cal(alligment)
+    count_gap = count_gaps (alligment)
+    alligment = delete_gap(alligment, count_gap, count_nucl, 50 / 100)
+    # Запись множественного выравнивания в файл
+    write_seq_in_file_with_length('multiple_alignment_compl.fasta', alligment, 0, 0)
+    a = matrix_of_MDI(alligment)
+    count = count_nucl_in_cal(alligment)
+    b = percetn_of_nucl_in_cal(count)
+    consensuss = consensus(alligment, b)
+    # Запись консенсуса в файл
+    write_seq_in_file_with_length('consensus_compl.fasta', [consensuss], 0, 0)
+    # Расчёт качества
+    consi = read_seq_from_file('consensus_compl.fasta')
+    multiple_allig = read_seq_from_file('multiple_alignment_compl.fasta')
+    list_seq = consi + multiple_allig
+    list_prob_quality = quality(list_seq)
+    phred_string = convert_to_phred(list_prob_quality)
+    write_fastq('consensus_compl.fastq', consi[0][:-100], phred_string)
+    os.remove('consensus_compl.fasta')
+    os.chdir(old_work_dir)
+
+
+    return
+
+
+def consensus_final(muscle_bin_full_path):
+
+    seq_cons_right = []
+    seq_cons_compl = []
+
+    with open('consensus.fastq', 'r') as file:
+        for line in file:
+            if line.startswith(('@', '+')):
+                continue
+            else:
+                seq_cons_right.append(line.strip())
+
+    with open('consensus_compl.fastq', 'r') as file:
+        for line in file:
+            if line.startswith(('@', '+')):
+                continue
+            else:
+                seq_cons_compl.append(line.strip())
+
+    seq_cons_compl[0] = reverse_complement(seq_cons_compl[0])
+    seq_cons_compl[1] = seq_cons_compl[1][::-1]
+
+    tmp_list = [seq_cons_right[0], seq_cons_compl[0]]
+
+    write_seq_in_file_with_length('tmp.fasta', tmp_list, 0, 0)
+    muscle('tmp.fasta', 'tmp_allig.fasta', muscle_bin_full_path)
+
+    seq_cons_right[0] = read_seq_from_file('tmp_allig.fasta')[0]
+    seq_cons_compl[0] = read_seq_from_file('tmp_allig.fasta')[1]
+
+    count = 0
+    tmp_seq = ''
+    for nucl in seq_cons_right[0]:
+        if nucl == '-':
+            tmp_seq += '-'
+        else:
+            tmp_seq += seq_cons_right[1][count]
+            count += 1
+    seq_cons_right[1] = tmp_seq
+
+
+    count = 0
+    tmp_seq = ''
+    for nucl in seq_cons_compl[0]:
+        if nucl == '-':
+            tmp_seq += '-'
+        else:
+            tmp_seq += seq_cons_compl[1][count]
+            count += 1
+    seq_cons_compl[1] = tmp_seq
+
+    count = count_nucl_in_cal([seq_cons_right[0], seq_cons_compl[0]])
+    b = percetn_of_nucl_in_cal(count)
+    consi = consensus([seq_cons_right[0], seq_cons_compl[0]], b)
+
+    phred = ''
+    for i in range(len(consi)):
+        if consi[i] == seq_cons_compl[0][i] and consi[i] == seq_cons_right[0][i]:
+            phred += chr(round((ord(seq_cons_right[1][i]) + ord(seq_cons_compl[1][i])) / 2))
+        elif consi[i] == seq_cons_compl[0][i] and consi[i] != seq_cons_right[0][i]:
+            phred += seq_cons_compl[1][i]
+        elif consi[i] != seq_cons_compl[0][i] and consi[i] == seq_cons_right[0][i]:
+            phred += seq_cons_right[1][i]
+        
+    os.remove('tmp.fasta')
+    os.remove('tmp_allig.fasta')
+
+    write_fastq('consensus_final.fastq', consi, phred)
