@@ -112,7 +112,7 @@ def muscle(path_in, path_out, muscle_bin_full_path):
 
 def muscle_with_gap1000(path_in, path_out, muscle_bin_full_path):
     # Функция запуска программы MUSCLE с штрафом за пропуск = 1000
-    command = f"{muscle_bin_full_path} -gapopen -2000 -in {path_in} -out {path_out} -quiet"
+    command = f"{muscle_bin_full_path} -gapopen -400 -in {path_in} -out {path_out} -quiet"
     subprocess.run(command, shell=True)
     return
 
@@ -439,16 +439,19 @@ def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
         for item in os.listdir('allig'):
             os.remove(f'allig/{item}')
 
+    lengths = [len(string) for string in sequence]
+    
+    
     # Основная часть, в которой сначала проверяется подходит ли нам последовательность учитывая стартовую позицию
     # Далее отрезается часть последовательности от indi до indi + 80, где indi это индекс, который увеличивается на половину длины выравнивания 
     # Далее считается количество пропусков и нуклеотидов и заменяется в изначальных последовательностях куски нуклеотидов на выравненные 
     indi = 0
-    for _ in tqdm(range(0, 20000, 40)):
+    for _ in tqdm(range(0, max(lengths) * 2, 40)):
         list_use_seq = []
         list_use_seq_index = []
         for j, seq in enumerate(sequence):
             gap_flag = False
-            for i in seq[indi:indi + 50]:
+            for i in seq[indi:indi + 80]:
                 if i != '-':
                     gap_flag = True
                     continue
@@ -457,16 +460,16 @@ def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
                 list_use_seq_index.append(j)
 
         
-        write_seq_in_file_with_length_and_name(f'allig/reads_{indi}-{indi + 50}.fasta', list_use_seq, list_use_seq_index, indi, indi + 50)
-        muscle(f'allig/reads_{indi}-{indi + 50}.fasta', f'allig/allig_{indi}-{indi + 50}.fasta', muscle_bin_full_path)
+        write_seq_in_file_with_length_and_name(f'allig/reads_{indi}-{indi + 80}.fasta', list_use_seq, list_use_seq_index, indi, indi + 80)
+        muscle(f'allig/reads_{indi}-{indi + 80}.fasta', f'allig/allig_{indi}-{indi + 80}.fasta', muscle_bin_full_path)
 
         list_seq_with_insert = []
-        sorted_seqs = sort_fasta(f'allig/allig_{indi}-{indi + 50}.fasta')
+        sorted_seqs = sort_fasta(f'allig/allig_{indi}-{indi + 80}.fasta')
         for rec in sorted_seqs:
             list_seq_with_insert.append(str(rec.seq))
-        write_seq_in_file_with_length_and_name(f'allig/allig_{indi}-{indi + 50}.fasta', list_seq_with_insert, list_use_seq_index,  0, 0)
+        write_seq_in_file_with_length_and_name(f'allig/allig_{indi}-{indi + 80}.fasta', list_seq_with_insert, list_use_seq_index,  0, 0)
 
-        alligment = read_seq_from_file(f'allig/allig_{indi}-{indi + 50}.fasta')
+        alligment = read_seq_from_file(f'allig/allig_{indi}-{indi + 80}.fasta')
 
 
 
@@ -554,11 +557,13 @@ def run_consensus_compl(path_to_reads, path_to_outdir,muscle_bin_full_path):
         for item in os.listdir('allig_compl'):
             os.remove(f'allig_compl/{item}')
 
+    lengths = [len(string) for string in sequence]
+
     # Основная часть, в которой сначала проверяется подходит ли нам последовательность учитывая стартовую позицию
     # Далее отрезается часть последовательности от indi до indi + 80, где indi это индекс, который увеличивается на половину длины выравнивания 
     # Далее считается количество пропусков и нуклеотидов и заменяется в изначальных последовательностях куски нуклеотидов на выравненные 
     indi = 0
-    for _ in tqdm(range(0, 20000, 40)):
+    for _ in tqdm(range(0, max(lengths) * 2, 40)):
         list_use_seq = []
         list_use_seq_index = []
         for j, seq in enumerate(sequence):
@@ -639,23 +644,29 @@ def run_consensus_compl(path_to_reads, path_to_outdir,muscle_bin_full_path):
     return
 
 
-def consensus_final(muscle_bin_full_path):
+def consensus_final(muscle_bin_full_path, path_out):
 
     seq_cons_right = []
     seq_cons_compl = []
 
     with open('consensus.fastq', 'r') as file:
+        tmp = 0
         for line in file:
-            if line.startswith(('@', '+')):
+            if tmp == 0 or tmp == 2:
+                tmp += 1
                 continue
             else:
+                tmp += 1
                 seq_cons_right.append(line.strip())
 
     with open('consensus_compl.fastq', 'r') as file:
+        tmp = 0
         for line in file:
-            if line.startswith(('@', '+')):
+            if tmp == 0 or tmp == 2:
+                tmp += 1
                 continue
             else:
+                tmp += 1
                 seq_cons_compl.append(line.strip())
 
     seq_cons_compl[0] = reverse_complement(seq_cons_compl[0])
@@ -664,7 +675,7 @@ def consensus_final(muscle_bin_full_path):
     tmp_list = [seq_cons_right[0], seq_cons_compl[0]]
 
     write_seq_in_file_with_length('tmp.fasta', tmp_list, 0, 0)
-    muscle('tmp.fasta', 'tmp_allig.fasta', muscle_bin_full_path)
+    muscle_with_gap1000('tmp.fasta', 'tmp_allig.fasta', muscle_bin_full_path)
 
     seq_cons_right[0] = read_seq_from_file('tmp_allig.fasta')[0]
     seq_cons_compl[0] = read_seq_from_file('tmp_allig.fasta')[1]
@@ -703,7 +714,7 @@ def consensus_final(muscle_bin_full_path):
         elif consi[i] != seq_cons_compl[0][i] and consi[i] == seq_cons_right[0][i]:
             phred += seq_cons_right[1][i]
         
-    os.remove('tmp.fasta')
-    os.remove('tmp_allig.fasta')
+    #os.remove('tmp.fasta')
+    #os.remove('tmp_allig.fasta')
 
-    write_fastq('consensus_final.fastq', consi, phred)
+    write_fastq(path_out, consi, phred)
