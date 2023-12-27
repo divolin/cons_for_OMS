@@ -1,9 +1,12 @@
-from Bio import SeqIO
 import numpy as np
 import subprocess
-from tqdm import tqdm
 import sys
 import os
+
+from Bio import SeqIO
+from math import log10
+from tqdm import tqdm
+
 
 def read_sam(path_to_reads):
     sequence = []
@@ -141,14 +144,17 @@ def count_gaps (allig):
     return (count_gap)
 
 
-#Удалени столбцов, где больше 50% гэпов
+#Удаление столбцов, где больше 50% гэпов
 
 def delete_gap (allig, count, count_nucleotide, perc_gap):
     for k,l in enumerate (allig):
         a = l
         for i, j in enumerate (count):
-            if j >= perc_gap and count_nucleotide[i][0] <= 0.5 and count_nucleotide[i][1] <= 0.5 and count_nucleotide[i][2] <= 0.5 and count_nucleotide[i][3] <= 0.5:
-                a = a[:i] + 'f' + a[i+1:]       
+            if count_nucleotide[i][0] >= 0.5 or count_nucleotide[i][1] >= 0.5 or count_nucleotide[i][2] >= 0.5 or count_nucleotide[i][3] >= 0.5:
+                if j >= perc_gap:
+                    a = a[:i] + 'f' + a[i+1:] 
+            else:
+                a = a[:i] + 'f' + a[i+1:]  
         allig[k] = a
 
     for i,j in enumerate(allig):
@@ -398,14 +404,19 @@ def quality(list_seq):
         for j in range(len(list_seq) - 1):
             if list_seq[0][i] == list_seq[j + 1][i]:
                 count += 1
-        list_quality.append(count / (len(list_seq) - 1))
+        list_quality.append(1 - (count / (len(list_seq) - 1)))
     return list_quality
+
+
 
 def convert_to_phred(list_score):
     list_phred = ''
     for score in list_score:
-        phred = int(round(score * 93, 0))
-        list_phred += chr(phred + 33)
+        if score != 0:
+            phred = int(round(-10 * log10(score), 0))
+            list_phred += chr(phred + 33)
+        else:
+            list_phred += '~'
     return list_phred
 
 def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
@@ -473,7 +484,7 @@ def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
 
 
 
-        tmp = int(0.5 * len(alligment[0]))
+        tmp = int(0.75 * len(alligment[0]))
 
         list_allig_index = []
         list_count_gap = []
@@ -590,7 +601,7 @@ def run_consensus_compl(path_to_reads, path_to_outdir,muscle_bin_full_path):
 
 
 
-        tmp = int(0.5 * len(alligment[0]))
+        tmp = int(0.75 * len(alligment[0]))
 
         list_allig_index = []
         list_count_gap = []
@@ -708,12 +719,11 @@ def consensus_final(muscle_bin_full_path, path_out):
     phred = ''
     for i in range(len(consi)):
         if consi[i] == seq_cons_compl[0][i] and consi[i] == seq_cons_right[0][i]:
-            phred += chr(round((ord(seq_cons_right[1][i]) + ord(seq_cons_compl[1][i])) / 2))
+            phred += chr(int(round((ord(seq_cons_right[1][i]) + ord(seq_cons_compl[1][i]) - 66) / 2 + 33, 0)))
         elif consi[i] == seq_cons_compl[0][i] and consi[i] != seq_cons_right[0][i]:
-            phred += seq_cons_compl[1][i]
+            phred += chr(int(round((ord(seq_cons_compl[1][i]) - 33) / 2 + 33, 0)))
         elif consi[i] != seq_cons_compl[0][i] and consi[i] == seq_cons_right[0][i]:
-            phred += seq_cons_right[1][i]
-        
+            phred += chr(int(round((ord(seq_cons_right[1][i]) - 33) / 2 + 33, 0)))
     #os.remove('tmp.fasta')
     #os.remove('tmp_allig.fasta')
 
