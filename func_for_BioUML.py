@@ -515,7 +515,7 @@ def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
     alligment = read_seq_from_file('allig_seq.fasta')
     count_nucl = per_nucl_in_cal(alligment)
     count_gap = count_gaps (alligment)
-    alligment = delete_gap(alligment, count_gap, count_nucl, 50 / 100)
+    alligment = delete_gap(alligment, count_gap, count_nucl, 51 / 100)
     # Запись множественного выравнивания в файл
     write_seq_in_file_with_length('multiple_alignment.fasta', alligment, 0, 0)
     a = matrix_of_MDI(alligment)
@@ -632,7 +632,7 @@ def run_consensus_compl(path_to_reads, path_to_outdir,muscle_bin_full_path):
     alligment = read_seq_from_file('allig_seq_compl.fasta')
     count_nucl = per_nucl_in_cal(alligment)
     count_gap = count_gaps (alligment)
-    alligment = delete_gap(alligment, count_gap, count_nucl, 50 / 100)
+    alligment = delete_gap(alligment, count_gap, count_nucl, 51 / 100)
     # Запись множественного выравнивания в файл
     write_seq_in_file_with_length('multiple_alignment_compl.fasta', alligment, 0, 0)
     a = matrix_of_MDI(alligment)
@@ -655,12 +655,12 @@ def run_consensus_compl(path_to_reads, path_to_outdir,muscle_bin_full_path):
     return
 
 
-def consensus_final(muscle_bin_full_path, path_out):
+def consensus_final(muscle_bin_full_path, path_out, name_consensus):
 
     seq_cons_right = []
     seq_cons_compl = []
 
-    with open('consensus.fastq', 'r') as file:
+    with open(f'{path_out}consensus.fastq', 'r') as file:
         tmp = 0
         for line in file:
             if tmp == 0 or tmp == 2:
@@ -670,7 +670,7 @@ def consensus_final(muscle_bin_full_path, path_out):
                 tmp += 1
                 seq_cons_right.append(line.strip())
 
-    with open('consensus_compl.fastq', 'r') as file:
+    with open(f'{path_out}consensus_compl.fastq', 'r') as file:
         tmp = 0
         for line in file:
             if tmp == 0 or tmp == 2:
@@ -685,11 +685,11 @@ def consensus_final(muscle_bin_full_path, path_out):
 
     tmp_list = [seq_cons_right[0], seq_cons_compl[0]]
 
-    write_seq_in_file_with_length('tmp.fasta', tmp_list, 0, 0)
-    muscle_with_gap1000('tmp.fasta', 'tmp_allig.fasta', muscle_bin_full_path)
+    write_seq_in_file_with_length(f'{path_out}tmp.fasta', tmp_list, 0, 0)
+    muscle_with_gap1000(f'{path_out}tmp.fasta', f'{path_out}tmp_allig.fasta', muscle_bin_full_path)
 
-    seq_cons_right[0] = read_seq_from_file('tmp_allig.fasta')[0]
-    seq_cons_compl[0] = read_seq_from_file('tmp_allig.fasta')[1]
+    seq_cons_right[0] = read_seq_from_file(f'{path_out}tmp_allig.fasta')[0]
+    seq_cons_compl[0] = read_seq_from_file(f'{path_out}tmp_allig.fasta')[1]
 
     count = 0
     tmp_seq = ''
@@ -727,4 +727,4 @@ def consensus_final(muscle_bin_full_path, path_out):
     #os.remove('tmp.fasta')
     #os.remove('tmp_allig.fasta')
 
-    write_fastq(path_out, consi, phred)
+    write_fastq(path_out+name_consensus, consi, phred)
