@@ -18,12 +18,12 @@ def delete_file(file):
 
 
 
-def main(adapter_fasta='adaptor.fasta', 
+def build_consensus(adapter_fasta='adaptor.fasta', 
          path_to_reads='outSNR8.fasta', 
-         path_to_outdir='/home/divolin/I/pacbio_19_10/', 
-         muscle_bin_full_path='/home/divolin/I/pacbio_19_10/muscle3.8.31_i86linux64', 
+         path_to_outdir=os.path.join(os.getcwd(), ''), 
+         muscle_bin_full_path=os.path.join(os.getcwd(), 'muscle3.8.31_i86linux64'), 
          name_consensus='consensus_final.fastq',
-         path_to_minimap2="./minimap2-2.28_x64-linux/minimap2"):
+         path_to_minimap2=os.path.join(os.getcwd(), "minimap2-2.28_x64-linux/minimap2")):
     
     print('Идёт обрезка адаптеров')
     adapter_start = read_fasta(adapter_fasta)[0]
@@ -120,7 +120,7 @@ if __name__ == "__main__":
                         help='*(Обязательный параметр) Путь к файлу адаптера (fasta)')
     parser.add_argument('-r', '--path_to_reads',
                         help='*(Обязательный параметр) Путь к файлу с прочтениями')
-    parser.add_argument('-o', '--path_to_outdir', default=os.getcwd(),
+    parser.add_argument('-o', '--path_to_outdir', default=os.path.join(os.getcwd(), ''),
                         help='Путь к выходной директории')
     parser.add_argument('-m', '--muscle_bin_full_path', default=os.path.join(os.getcwd(), 'muscle3.8.31_i86linux64'),
                         help='Полный путь к исполняемому файлу MUSCLE')
@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    main(adapter_fasta=args.adapter_fasta, 
+    build_consensus(adapter_fasta=args.adapter_fasta, 
          path_to_reads=args.path_to_reads, 
          path_to_outdir=args.path_to_outdir, 
          muscle_bin_full_path=args.muscle_bin_full_path, 
