@@ -5,7 +5,6 @@ import os
 
 from Bio import SeqIO
 from math import log10
-from tqdm import tqdm
 
 
 def read_sam(path_to_reads):
@@ -457,7 +456,7 @@ def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
     # Далее отрезается часть последовательности от indi до indi + 80, где indi это индекс, который увеличивается на половину длины выравнивания 
     # Далее считается количество пропусков и нуклеотидов и заменяется в изначальных последовательностях куски нуклеотидов на выравненные 
     indi = 0
-    for _ in tqdm(range(0, max(lengths) * 2, 40)):
+    for _ in range(0, max(lengths) * 2, 40):
         list_use_seq = []
         list_use_seq_index = []
         for j, seq in enumerate(sequence):
@@ -574,7 +573,7 @@ def run_consensus_compl(path_to_reads, path_to_outdir,muscle_bin_full_path):
     # Далее отрезается часть последовательности от indi до indi + 80, где indi это индекс, который увеличивается на половину длины выравнивания 
     # Далее считается количество пропусков и нуклеотидов и заменяется в изначальных последовательностях куски нуклеотидов на выравненные 
     indi = 0
-    for _ in tqdm(range(0, max(lengths) * 2, 40)):
+    for _ in range(0, max(lengths) * 2, 40):
         list_use_seq = []
         list_use_seq_index = []
         for j, seq in enumerate(sequence):
