@@ -5,6 +5,8 @@ from func_for_BioUML import *
 import os
 import sys
 import argparse
+from pathlib import Path
+
 
 
 def delete_file(file):
@@ -25,6 +27,10 @@ def build_consensus(adapter_fasta='adaptor.fasta',
          name_consensus='consensus_final.fastq',
          path_to_minimap2=os.path.join(os.getcwd(), "minimap2-2.28_x64-linux/minimap2")):
     
+    # Путь к выходной папке
+    output_folder = Path('/app/output')
+    output_folder.mkdir(parents=True, exist_ok=True)
+
     print('Идёт обрезка адаптеров')
     adapter_start = read_fasta(adapter_fasta)[0]
     adapter_end = read_fasta(adapter_fasta)[0]
@@ -37,6 +43,8 @@ def build_consensus(adapter_fasta='adaptor.fasta',
         sequence = read_fasta(path_to_reads)
     else:
         sys.exit('Error: accepted input file extensions are .sam, .fastq, and .fasta')
+
+    read_length_poly = len(sequence)
 
     write_seq_in_file_with_length(f'{path_to_outdir}long_read.fasta', sequence, 0, 11111111111)
 
@@ -82,8 +90,8 @@ def build_consensus(adapter_fasta='adaptor.fasta',
               path_to_minimap2=path_to_minimap2,
               path_to_outdir=path_to_outdir)
 
-    for i in range(30):
-        for j in range(30):
+    for i in range(50):
+        for j in range(50):
             delete_file(f'{path_to_outdir}alignments_{i}_{j}.paf')
     print('Поиск стартовых позиций окончен')
 
@@ -113,13 +121,21 @@ def build_consensus(adapter_fasta='adaptor.fasta',
         delete_file(f'{path_to_outdir}{temp_file}')
     print(f'Составление консенсуса окончено, итоговый консенсус записан по пути {path_to_outdir} в файл {name_consensus}')
 
+
+
+    print(f"Изначальная длина полимеразного прочтения {read_length_poly}")
+    print(f"Адаптер начала {adapter_start}")
+    print(f"Адаптер конца {adapter_end}")
+    print(f"После вырезки адаптеров получилось {count_reads} прочтений")
+    print(f"Средняя длина субпрочтений {average_length} нуклеотидов")
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Обработка последовательностей ДНК.\n* - обязательные параметры')
     parser.add_argument('-a', '--adapter_fasta',
                         help='*(Обязательный параметр) Путь к файлу адаптера (fasta)')
     parser.add_argument('-r', '--path_to_reads',
-                        help='*(Обязательный параметр) Путь к файлу с прочтениями')
+                        help='*(Обязательный параметр) Путь к файлу с прочтениями') 
     parser.add_argument('-o', '--path_to_outdir', default=os.path.join(os.getcwd(), ''),
                         help='Путь к выходной директории')
     parser.add_argument('-m', '--muscle_bin_full_path', default=os.path.join(os.getcwd(), 'muscle3.8.31_i86linux64'),
