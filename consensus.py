@@ -142,6 +142,7 @@ def build_consensus(adapter_fasta,
     print(f"После вырезки адаптеров получилось {count_reads} прочтений")
     print(f"Средняя длина субпрочтений {average_length} нуклеотидов")
     print(f"Длина консенсуса {len(sequence)} нуклеотидов")
+    print('--------------------------------------------------')
 
 if __name__ == "__main__":
 
