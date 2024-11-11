@@ -147,6 +147,7 @@ def build_consensus(adapter_fasta='adaptor.fasta',
         delete_file(f'{path_to_outdir}{temp_file}')
     print(f'Составление консенсуса окончено, итоговый консенсус записан по пути {path_to_outdir} в файл {name_consensus}')
 
+    sequence = read_fastq('output/consensus_final.fastq')
 
 
     print(f"Изначальная длина полимеразного прочтения {read_length_poly}")
@@ -154,6 +155,7 @@ def build_consensus(adapter_fasta='adaptor.fasta',
     print(f"Адаптер конца {adapter_end}")
     print(f"После вырезки адаптеров получилось {count_reads} прочтений")
     print(f"Средняя длина субпрочтений {average_length} нуклеотидов")
+    print(f"Длина консенсуса {len(sequence)} нуклеотидов")
 
 if __name__ == "__main__":
 
