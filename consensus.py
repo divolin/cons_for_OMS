@@ -129,7 +129,7 @@ def build_consensus(adapter_fasta,
             print(f"Произошла ошибка при удалении папки '{folder_path}': {e}")
 
     for temp_file in temporary_files:
-        delete_file(temp_file)
+        delete_file(f'{path_to_outdir}{temp_file}')
 
 
     print(f'Составление консенсуса окончено, итоговый консенсус записан по пути {output_folder} в файл {name_consensus}')
