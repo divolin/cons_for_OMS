@@ -147,7 +147,7 @@ def build_consensus(adapter_fasta='adaptor.fasta',
         delete_file(f'{path_to_outdir}{temp_file}')
     print(f'Составление консенсуса окончено, итоговый консенсус записан по пути {path_to_outdir} в файл {name_consensus}')
 
-    sequence = read_fastq('output/consensus_final.fastq')
+    sequence = read_fastq('data/output/consensus_final.fastq')
 
 
     print(f"Изначальная длина полимеразного прочтения {read_length_poly}")
