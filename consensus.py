@@ -116,7 +116,7 @@ def build_consensus(adapter_fasta,
         'out.fasta', 'out_compl.fasta', 'allig_seq.fasta', 'real_reads.fasta',
         'allig_seq_compl.fasta', 'myreads.fasta', 'tmp.fasta', 'tmp_allig.fasta',
         'real_compl_reads.fasta', 'reads.fasta', 'multiple_alignment_compl.fasta', 'multiple_alignment.fasta',
-        'consensus_compl.fastq', 'consensus.fastq'
+        'consensus_compl.fastq', 'consensus.fastq', 'consensus_compl.fasta'
     ]
 
     for folder_name in ['allig', 'allig_compl']:
