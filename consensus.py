@@ -47,90 +47,72 @@ def build_consensus(adapter_fasta,
     temp_dir = os.path.join(path_to_outdir, 'temp')
     os.makedirs(temp_dir, exist_ok=True)
 
-    # Путь для временных файлов
-    temp_long_read_file = os.path.join(temp_dir, 'long_read.fasta')
 
-    write_seq_in_file_with_length(temp_long_read_file, sequence, 0, 11111111111)
+    write_seq_in_file_with_length('long_read.fasta', sequence, 0, 11111111111)
 
-    long_read_file = temp_long_read_file
+    long_read_file = 'long_read.fasta'
 
     cutadapt_func(adapter_start=adapter_start,
                   adapter_end=adapter_end,
                   long_read_file=long_read_file,
-                  path_to_outdir=temp_dir)
-    delete_file(os.path.join(temp_dir, 'output.fasta'))
-    delete_file(os.path.join(temp_dir, 'output.txt'))
+                  path_to_outdir=path_to_outdir)
+    delete_file(f'{path_to_outdir}output.fasta')
+    delete_file(f'{path_to_outdir}output.txt')
 
-    input_fasta = os.path.join(temp_dir, 'reads.fasta')  
+    input_fasta = f'{path_to_outdir}reads.fasta'  
     filter_fasta_by_length(input_fasta)
 
-    reads_after_cutadapt = read_fasta_start_pos(os.path.join(temp_dir, 'reads.fasta'))
+    reads_after_cutadapt = read_fasta_start_pos(f'{path_to_outdir}reads.fasta')
     count_reads = len(reads_after_cutadapt)
     average_length = round(sum(len(s) for s in reads_after_cutadapt) / count_reads)
 
     print(f'Обрезка адаптеров окончена, получилось: {count_reads} прочтений со средней длиной: {average_length}')
     print('Идёт поиск стартовых позиций')
 
-    list_med_real, list_all_positive_or_negative = start_pos(
-        file_reads=os.path.join(temp_dir, 'reads.fasta'), 
-        file_out=os.path.join(temp_dir, 'predict_1.fasta'), 
-        path_to_minimap2=path_to_minimap2, 
-        path_to_outdir=temp_dir
-    )
+    list_med_real, list_all_positive_or_negative = start_pos(file_reads=f'{path_to_outdir}reads.fasta', 
+                                                             file_out=f'{path_to_outdir}predict_1.fasta', 
+                                                             path_to_minimap2=path_to_minimap2, 
+                                                             path_to_outdir=path_to_outdir)
 
     list_napravlenie_reads = determine_orientations(list_all_positive_or_negative)
-    list_all_reads = read_fasta_start_pos(os.path.join(temp_dir, 'reads.fasta'))
+    list_all_reads = read_fasta_start_pos(f'{path_to_outdir}reads.fasta')
 
     list_reads = [list_all_reads[i - 1] for i in list_napravlenie_reads[0]]
     list_compl_reads = [list_all_reads[i - 1] for i in list_napravlenie_reads[1]]
 
-    write_seq_in_file_with_length(os.path.join(temp_dir, 'real_reads.fasta'), list_reads, 0, 1111111)
-    write_seq_in_file_with_length(os.path.join(temp_dir, 'real_compl_reads.fasta'), list_compl_reads, 0, 1111111)
+    write_seq_in_file_with_length(f'{path_to_outdir}real_reads.fasta', list_reads, 0, 1111111)
+    write_seq_in_file_with_length(f'{path_to_outdir}real_compl_reads.fasta', list_compl_reads, 0, 1111111)
 
-    start_pos(
-        file_reads=os.path.join(temp_dir, 'real_reads.fasta'), 
-        file_out=os.path.join(temp_dir, 'out.fasta'), 
-        path_to_minimap2=path_to_minimap2,
-        path_to_outdir=temp_dir
-    )
-    start_pos(
-        file_reads=os.path.join(temp_dir, 'real_compl_reads.fasta'), 
-        file_out=os.path.join(temp_dir, 'out_compl.fasta'), 
-        path_to_minimap2=path_to_minimap2,
-        path_to_outdir=temp_dir
-    )
+    start_pos(file_reads=f'{path_to_outdir}real_reads.fasta', 
+              file_out=f'{path_to_outdir}out.fasta', 
+              path_to_minimap2=path_to_minimap2,
+              path_to_outdir=path_to_outdir)
+    start_pos(file_reads=f'{path_to_outdir}real_compl_reads.fasta', 
+              file_out=f'{path_to_outdir}out_compl.fasta', 
+              path_to_minimap2=path_to_minimap2,
+              path_to_outdir=path_to_outdir)
 
     for i in range(50):
         for j in range(50):
-            delete_file(os.path.join(temp_dir, f'alignments_{i}_{j}.paf'))
+            delete_file(f'{path_to_outdir}alignments_{i}_{j}.paf')
     print('Поиск стартовых позиций окончен')
 
     print('Идёт составление консенсуса')
     # Запуск для прямых прочтений
-    run_consensus(
-        path_to_reads=os.path.join(temp_dir, 'out.fasta'), 
-        path_to_outdir=temp_dir,
-        muscle_bin_full_path=muscle_bin_full_path
-    )
+    run_consensus(path_to_reads=f'{path_to_outdir}out.fasta', 
+                  path_to_outdir=path_to_outdir,
+                  muscle_bin_full_path=muscle_bin_full_path)
 
     # Запуск для обратных прочтений
-    run_consensus_compl(
-        path_to_reads=os.path.join(temp_dir, 'out_compl.fasta'), 
-        path_to_outdir=temp_dir, 
-        muscle_bin_full_path=muscle_bin_full_path
-    )
-
-    # Получение одного консенсуса из прямого и обратного консенсуса
+    run_consensus_compl(path_to_reads=f'{path_to_outdir}out_compl.fasta', 
+                        path_to_outdir=path_to_outdir, 
+                        muscle_bin_full_path=muscle_bin_full_path)
+# Получение одного консенсуса из прямого и обратного консенсуса
     consensus_final(
         muscle_bin_full_path=muscle_bin_full_path,
-        path_out=temp_dir,
+        path_out=path_to_outdir,
         name_consensus=name_consensus
     )
-
-    # Копируем итоговый консенсус в выходную папку с нужным именем
-    final_consensus_path = os.path.join(temp_dir, name_consensus)
-    output_consensus_path = os.path.join(output_folder, name_consensus)
-    shutil.copyfile(final_consensus_path, output_consensus_path)
 
     # Очистка временных файлов
     temporary_files = [
@@ -158,7 +140,7 @@ def build_consensus(adapter_fasta,
 
     print(f'Составление консенсуса окончено, итоговый консенсус записан по пути {output_folder} в файл {name_consensus}')
 
-    sequence = read_fastq(output_consensus_path)[0]
+    sequence = read_fastq('/data/output/consensus_final.fastq')[0]
 
     print(f"Изначальная длина полимеразного прочтения {read_length_poly}")
     print(f"Адаптер начала {adapter_start}")
