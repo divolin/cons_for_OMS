@@ -28,7 +28,7 @@ def build_consensus(adapter_fasta='adaptor.fasta',
          path_to_minimap2=os.path.join(os.getcwd(), "minimap2-2.28_x64-linux/minimap2")):
     
     # Путь к выходной папке
-    output_folder = Path('/app/output')
+    output_folder = Path('/data/output')
     output_folder.mkdir(parents=True, exist_ok=True)
 
     print('Идёт обрезка адаптеров')
