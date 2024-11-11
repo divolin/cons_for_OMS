@@ -655,11 +655,13 @@ def run_consensus_compl(path_to_reads, path_to_outdir,muscle_bin_full_path):
 
 
 def consensus_final(muscle_bin_full_path, path_out, name_consensus):
+    old_work_dir = os.getcwd()
+    os.chdir(path_out)
 
     seq_cons_right = []
     seq_cons_compl = []
 
-    with open(f'{path_out}consensus.fastq', 'r') as file:
+    with open(f'consensus.fastq', 'r') as file:
         tmp = 0
         for line in file:
             if tmp == 0 or tmp == 2:
@@ -669,7 +671,7 @@ def consensus_final(muscle_bin_full_path, path_out, name_consensus):
                 tmp += 1
                 seq_cons_right.append(line.strip())
 
-    with open(f'{path_out}consensus_compl.fastq', 'r') as file:
+    with open(f'consensus_compl.fastq', 'r') as file:
         tmp = 0
         for line in file:
             if tmp == 0 or tmp == 2:
@@ -684,11 +686,11 @@ def consensus_final(muscle_bin_full_path, path_out, name_consensus):
 
     tmp_list = [seq_cons_right[0], seq_cons_compl[0]]
 
-    write_seq_in_file_with_length(f'{path_out}tmp.fasta', tmp_list, 0, 0)
-    muscle_with_gap1000(f'{path_out}tmp.fasta', f'{path_out}tmp_allig.fasta', muscle_bin_full_path)
+    write_seq_in_file_with_length(f'tmp.fasta', tmp_list, 0, 0)
+    muscle_with_gap1000(f'tmp.fasta', f'tmp_allig.fasta', muscle_bin_full_path)
 
-    seq_cons_right[0] = read_seq_from_file(f'{path_out}tmp_allig.fasta')[0]
-    seq_cons_compl[0] = read_seq_from_file(f'{path_out}tmp_allig.fasta')[1]
+    seq_cons_right[0] = read_seq_from_file(f'tmp_allig.fasta')[0]
+    seq_cons_compl[0] = read_seq_from_file(f'tmp_allig.fasta')[1]
 
     count = 0
     tmp_seq = ''
@@ -727,3 +729,4 @@ def consensus_final(muscle_bin_full_path, path_out, name_consensus):
     #os.remove('tmp_allig.fasta')
 
     write_fastq(path_out+name_consensus, consi, phred)
+    os.chdir(old_work_dir)
