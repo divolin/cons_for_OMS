@@ -2,6 +2,7 @@ from func_cutadapt import *
 from func_start_pos import *
 from func_for_BioUML import *
 
+import shutil
 import os
 import sys
 import argparse
@@ -114,9 +115,34 @@ def build_consensus(adapter_fasta='adaptor.fasta',
     # Очистка временных файлов
     temporary_files = [
         'long_read.fasta','long_sequence.fasta', 'short_sequence.fasta', 'predict_1.fasta',
-        'out.fasta', 'out_compl.fasta', 'allig_seq.fasta',
-        'allig_seq_compl.fasta', 'myreads.fasta', 'tmp.fasta', 'tmp_allig.fasta'
+        'out.fasta', 'out_compl.fasta', 'allig_seq.fasta', 'real_reads.fasta',
+        'allig_seq_compl.fasta', 'myreads.fasta', 'tmp.fasta', 'tmp_allig.fasta',
+        'real_compl_reads.fasta', 'reads.fasta', 'multiple_alignment_compl.fasta', 'multiple_alignment.fasta',
+        'consensus_compl.fastq', 'consensus.fastq'
     ]
+
+    folder_path = '/data/output/allig'
+    try:
+        shutil.rmtree(folder_path)
+        print(f"Папка '{folder_path}' успешно удалена.")
+    except FileNotFoundError:
+        print(f"Папка '{folder_path}' не существует.")
+    except PermissionError:
+        print(f"Недостаточно прав для удаления папки '{folder_path}'.")
+    except Exception as e:
+        print(f"Произошла ошибка: {e}")
+
+    folder_path = '/data/output/allig_compl'
+    try:
+        shutil.rmtree(folder_path)
+        print(f"Папка '{folder_path}' успешно удалена.")
+    except FileNotFoundError:
+        print(f"Папка '{folder_path}' не существует.")
+    except PermissionError:
+        print(f"Недостаточно прав для удаления папки '{folder_path}'.")
+    except Exception as e:
+        print(f"Произошла ошибка: {e}")
+
     for temp_file in temporary_files:
         delete_file(f'{path_to_outdir}{temp_file}')
     print(f'Составление консенсуса окончено, итоговый консенсус записан по пути {path_to_outdir} в файл {name_consensus}')
