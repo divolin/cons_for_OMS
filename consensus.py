@@ -41,7 +41,7 @@ def build_consensus(adapter_fasta,
         print(f'Пропуск файла {path_to_reads}: неподдерживаемое расширение.')
         return  # Пропускаем файл, если расширение не поддерживается
 
-    read_length_poly = len(sequence)
+    read_length_poly = len(sequence[0])
 
 
     write_seq_in_file_with_length('long_read.fasta', sequence, 0, 11111111111)
