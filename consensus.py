@@ -120,7 +120,7 @@ def build_consensus(adapter_fasta,
     ]
 
     for folder_name in ['allig', 'allig_compl']:
-        folder_path = folder_name
+        folder_path = f'/data/output/{folder_name}'
         try:
             shutil.rmtree(folder_path)
         except FileNotFoundError:
