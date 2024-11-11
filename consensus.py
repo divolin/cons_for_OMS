@@ -43,10 +43,6 @@ def build_consensus(adapter_fasta,
 
     read_length_poly = len(sequence)
 
-    # Создаем временную папку для текущего файла
-    temp_dir = os.path.join(path_to_outdir, 'temp')
-    os.makedirs(temp_dir, exist_ok=True)
-
 
     write_seq_in_file_with_length('long_read.fasta', sequence, 0, 11111111111)
 
@@ -124,7 +120,7 @@ def build_consensus(adapter_fasta,
     ]
 
     for folder_name in ['allig', 'allig_compl']:
-        folder_path = os.path.join(temp_dir, folder_name)
+        folder_path = folder_name
         try:
             shutil.rmtree(folder_path)
         except FileNotFoundError:
@@ -133,14 +129,12 @@ def build_consensus(adapter_fasta,
             print(f"Произошла ошибка при удалении папки '{folder_path}': {e}")
 
     for temp_file in temporary_files:
-        delete_file(os.path.join(temp_dir, temp_file))
+        delete_file(temp_file)
 
-    # Удаляем временную папку
-    shutil.rmtree(temp_dir)
 
     print(f'Составление консенсуса окончено, итоговый консенсус записан по пути {output_folder} в файл {name_consensus}')
 
-    sequence = read_fastq('/data/output/consensus_final.fastq')[0]
+    sequence = read_fastq(f'/data/output/{name_consensus}')[0]
 
     print(f"Изначальная длина полимеразного прочтения {read_length_poly}")
     print(f"Адаптер начала {adapter_start}")
