@@ -138,6 +138,7 @@ def cutadapt_func(adapter_start, adapter_end, long_read_file, path_to_outdir):
     with open(f'{path_to_outdir}reads.fasta', 'w') as file:
         pass
 
+    count = 0
     flag = True
     while flag:
         cmd = ['cutadapt', '-a', f'{adapter_start}...{adapter_end}', '-e', '0.3', '-o', f'{path_to_outdir}output.fasta', long_read_file]
@@ -146,12 +147,26 @@ def cutadapt_func(adapter_start, adapter_end, long_read_file, path_to_outdir):
         left_trimmed, right_trimmed = parse_cutadapt_summary(f'{path_to_outdir}output.txt')
         if left_trimmed:
             if right_trimmed:
-                left_trimmed -= len(adapter_start)
-                if left_trimmed < 0:
-                    left_trimmed = 0
-                right_trimmed += len(adapter_start)
+                sequence_after_cutadapt = read_fasta(f'{path_to_outdir}output.fasta')
+                if sequence_after_cutadapt:
+                    sequence_after_cutadapt = sequence_after_cutadapt[0]
+                    if len(sequence_after_cutadapt) < 10:
+                        count += 1
+                        if count == 4:
+                            flag = False
+                            break
+                    else:
+                        left_trimmed -= len(adapter_start)
+                        if left_trimmed < 0:
+                            left_trimmed = 0
+                        right_trimmed += len(adapter_start)
                 #print("Left trimmed:", left_trimmed)
                 #print("Right trimmed:", right_trimmed)
+                else:
+                    count += 1
+                    if count == 4:
+                        flag = False
+                        break
             else:
                 flag = False
                 break
@@ -167,6 +182,7 @@ def cutadapt_func(adapter_start, adapter_end, long_read_file, path_to_outdir):
         long_sequence = long_sequence[0:left_trimmed] + long_sequence[len(sequence_after_cutadapt) + left_trimmed + len(adapter_start):]
         write_seq_in_file_with_length(f'{long_read_file}', [long_sequence], 0, 111111111111)
         
+    count = 0
     flag = True
     while flag:
         cmd = ['cutadapt', '-a', f'{adapter_end}...{adapter_end}', '-e', '0.3', '-o', f'{path_to_outdir}output.fasta', long_read_file]
@@ -175,9 +191,23 @@ def cutadapt_func(adapter_start, adapter_end, long_read_file, path_to_outdir):
         left_trimmed, right_trimmed = parse_cutadapt_summary(f'{path_to_outdir}output.txt')
         if left_trimmed:
             if right_trimmed:
-                right_trimmed += len(adapter_end)
+                sequence_after_cutadapt = read_fasta(f'{path_to_outdir}output.fasta')
+                if sequence_after_cutadapt:
+                    sequence_after_cutadapt = sequence_after_cutadapt[0]
+                    if len(sequence_after_cutadapt) < 10:
+                        count += 1
+                        if count == 4:
+                            flag = False
+                            break
+                    else:
+                        right_trimmed += len(adapter_end)
                 #print("Left trimmed_compl+len:", left_trimmed)
                 #print("Right trimmed_compl+len:", right_trimmed)
+                else:
+                    count += 1
+                    if count == 4:
+                        flag = False
+                        break
             else:
                 flag = False
                 break
