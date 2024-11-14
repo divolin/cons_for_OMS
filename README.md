@@ -25,7 +25,7 @@ docker run -it --rm -v /путь/к/папке/с/прочтениями:/data -
 ```python
 import requests
 
-url = 'http://localhost:5000/api/process_json'
+url = 'http://localhost:5000/api/process'
 headers = {'Content-Type': 'application/json'}
 json = {
     'dir_in': '/path/to/input',
@@ -39,7 +39,7 @@ print(response.json())
 **Отправка запроса с cURL:**
 
 ```bash
-curl -X POST -H "Content-Type: application/json" -d '{"dir_in": "/path/to/input", "dir_out": "/path/to/output"}' "http://localhost:5000/api/process_json"
+curl -X POST -H "Content-Type: application/json" -d '{"dir_in": "/path/to/input", "dir_out": "/path/to/output"}' "http://localhost:5000/api/process"
 ```
 
 **Получение статуса:**
@@ -51,7 +51,7 @@ curl -X POST -H "Content-Type: application/json" -d '{"dir_in": "/path/to/input"
 ```python
 import requests
 
-url = 'http://localhost:5000/api/get_status'
+url = 'http://localhost:5000/api/status'
 params = {'id': '12345'}
 
 response = requests.get(url, params=params)
@@ -61,7 +61,7 @@ print(response.json())
 **Отправка запроса с cURL:**
 
 ```bash
-curl -X GET "http://localhost:5000/api/get_status?id=12345"
+curl -X GET "http://localhost:5000/api/status?id=12345"
 ```
 
 
