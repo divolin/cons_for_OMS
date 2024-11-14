@@ -82,12 +82,12 @@ def process_task(task_id, dir_in, dir_out):
 
 @app.route('/api/process', methods=['POST'])
 def process_reads():
-    dir_in = request.form.get('dir_in')
-    dir_out = request.form.get('dir_out')
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Пустое тело запроса или некорректный формат JSON'}), 400
 
-    if not dir_in or not dir_out:
-        return jsonify({'error': 'Необходимо указать параметры dir_in и dir_out'}), 400
-
+    dir_in = data.get('dir_in')
+    dir_out = data.get('dir_out')
 
 
     
