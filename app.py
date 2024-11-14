@@ -7,37 +7,35 @@ from consensus import build_consensus
 
 app = Flask(__name__)
 
-# Словарь для хранения статусов задач
+
 tasks_status = {}
 
 def process_task(task_id, dir_in, dir_out):
     try:
-        # Обновляем статус задачи
         tasks_status[task_id] = {'status': 'started', 'preparedness': 0, 'message': ''}
 
-        # Преобразуем пути для доступа из контейнера
         host_fs_prefix = '/data'
         dir_in_container = os.path.join(host_fs_prefix, dir_in.lstrip('/'))
         dir_out_container = os.path.join(host_fs_prefix, dir_out.lstrip('/'))
         print(dir_out_container)
 
-        # Проверяем, что входная директория существует
+        
         if not os.path.isdir(dir_in_container):
             tasks_status[task_id]['status'] = 'error'
             tasks_status[task_id]['message'] = f'Входная директория {dir_in} не найдена.'
             return
 
-        # Проверяем, что выходная директория существует или создаем ее
+        
         os.makedirs(dir_out_container, exist_ok=True)
 
-        # Путь к файлу адаптера
+        
         adapter_path = os.path.join(dir_in_container, 'adapter.fasta')
         if not os.path.isfile(adapter_path):
             tasks_status[task_id]['status'] = 'error'
             tasks_status[task_id]['message'] = f'Файл адаптера {adapter_path} не найден.'
             return
 
-        # Получаем список файлов с прочтениями
+        
         supported_extensions = ('.fasta', '.fastq', '.sam')
         files = [f for f in os.listdir(dir_in_container) if f.endswith(supported_extensions)]
         if not files:
@@ -49,7 +47,7 @@ def process_task(task_id, dir_in, dir_out):
         processed_files = 0
 
         dir_out_container += '/'
-        # Обрабатываем каждый файл
+        
         count_right_files = 0
         for filename in files:
             file_path = os.path.join(dir_in_container, filename)
@@ -70,10 +68,10 @@ def process_task(task_id, dir_in, dir_out):
                 continue
 
             processed_files += 1
-            # Обновляем прогресс
+            
             tasks_status[task_id]['preparedness'] = int((processed_files / (total_files - 1)) * 100)
 
-        # Обновляем статус задачи
+        
         tasks_status[task_id]['status'] = 'completed'
         tasks_status[task_id]['message'] = f'Обработано {count_right_files} из {total_files - 1} файлов'
 
@@ -90,14 +88,12 @@ def process_reads():
     if not dir_in or not dir_out:
         return jsonify({'error': 'Необходимо указать параметры dir_in и dir_out'}), 400
 
-    # Проверка безопасности путей
-    # Здесь вы можете добавить проверку, чтобы предотвратить доступ к нежелательным местам
-    # Например, ограничить доступ определёнными базовыми директориями
 
-    # Генерируем уникальный идентификатор задачи
+
+    
     task_id = str(uuid.uuid4())
 
-    # Запускаем задачу в отдельном потоке
+    
     thread = threading.Thread(target=process_task, args=(task_id, dir_in, dir_out))
     thread.start()
 
