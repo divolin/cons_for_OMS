@@ -3,7 +3,7 @@
 Чтобы запустить Docker-образ и обработать полимеразные прочтения для получения консенсусных последовательностей, используйте следующую команду:
 
 ```bash
-docker run -it --rm -v /путь/к/папке/с/прочтениями:/data -p 5000:5000 divolin/cons_for_oms_app:flask_latest 
+docker run -it --cpus=8 --rm -v /путь/к/папке/с/прочтениями:/data -p 5000:5000 divolin/cons_for_oms_app:flask_latest_8
 
 ```
 
