@@ -2,7 +2,8 @@ import subprocess
 from statistics import median
 from Bio import SeqIO
 import subprocess
-
+import numpy as np
+import os
 
 def read_fastq(path_to_reads):
     """
@@ -95,6 +96,7 @@ def muscle(path_in, path_out, muscle_bin_full_path):
     """
     command = f"{muscle_bin_full_path} -gapopen -2 -in {path_in} -out {path_out} -quiet"
     subprocess.run(command, shell=True)
+    return
 
 def muscle_with_gap1000(path_in, path_out, muscle_bin_full_path):
     """
@@ -104,8 +106,9 @@ def muscle_with_gap1000(path_in, path_out, muscle_bin_full_path):
         path_out (str): Путь к выходному файлу.
         muscle_bin_full_path (str): Путь к исполняемому файлу MUSCLE.
     """
-    command = f"{muscle_bin_full_path} -gapopen -1000 -in {path_in} -out {path_out} -quiet"
+    command = f"{muscle_bin_full_path} -gapopen -400 -in {path_in} -out {path_out} -quiet"
     subprocess.run(command, shell=True)
+    return
 
 def read_fasta_start_pos(path_to_reads):
     """
@@ -203,7 +206,7 @@ def run_minimap228(long_sequence_file, short_sequence_file, output_file, path_to
     command = [
         path_to_minimap2,
         "--secondary=no",
-        "-t", "20",
+        "-t", "8",
         "-k", "7",
         "-w", "1",
         "-F", "5000",
@@ -252,7 +255,7 @@ def parse_paf(file_path):
                 'mapq': mapq
             }
             alignments.append(alignment_info)
-    return alignments
+            return alignments
 
 def compute_shifts(alignment_data):
     """
@@ -357,6 +360,9 @@ def extract_startpos_from_sam(sam_file_path):
                 list_startpos.append(startpos)
     return list_startpos
 
+
+
+
 def determine_orientations(signs):
     """
     Определяет ориентации последовательностей на основе знаков выравниваний.
@@ -367,28 +373,23 @@ def determine_orientations(signs):
     """
     sign_map = {'+': 1, '-': -1}
     N = len(signs)
-    signs_int = []
-    for row in signs:
-        signs_int.append([sign_map[c] for c in row])
+    signs_int = np.array([[sign_map[c] for c in row] for row in signs])
 
-    max_agreements = -1
-    best_labels = None
+    eigenvalues, eigenvectors = np.linalg.eigh(signs_int)
+    leading_eigenvector = eigenvectors[:, -1]
+    labels = np.sign(leading_eigenvector)
+    labels[labels == 0] = 1  
+    labels = labels.astype(int)
 
-    for assignment in range(1 << N):
-        labels = [1 if (assignment >> i) & 1 else -1 for i in range(N)]
-        agreements = 0
-        for i in range(N):
-            for j in range(N):
-                if signs_int[i][j] == labels[i] * labels[j]:
-                    agreements += 1
-        if agreements > max_agreements:
-            max_agreements = agreements
-            best_labels = labels
-
-    direct_indices = [idx + 1 for idx, label in enumerate(best_labels) if label == 1]
-    reverse_indices = [idx + 1 for idx, label in enumerate(best_labels) if label == -1]
+    direct_indices = [idx + 1 for idx, label in enumerate(labels) if label == 1]
+    reverse_indices = [idx + 1 for idx, label in enumerate(labels) if label == -1]
 
     return direct_indices, reverse_indices
+
+
+
+
+import time
 
 def start_pos(file_reads, file_out, path_to_minimap2, path_to_outdir):
     """
@@ -399,84 +400,124 @@ def start_pos(file_reads, file_out, path_to_minimap2, path_to_outdir):
     Возвращает:
         tuple: (list_med_real, list_all_positive_or_negative)
     """
-    # Выравнивание всей длины наименьшего на все остальные
+    start_time = time.time()
     reads = read_fasta_start_pos(file_reads)
 
     list_all_border = []
-    list_all_positive_or_negative = []
 
     for index1, read_align in enumerate(reads):
         list_border = []
-        list_positive_or_negative = []
-        write_seq_in_file_with_length(f'{path_to_outdir}short_sequence.fasta', [read_align], 0, 1111111)
+        write_seq_in_file_with_length(os.path.join(path_to_outdir, 'short_sequence.fasta'), [read_align], 0, 1111111)
         for index, read in enumerate(reads):
-            write_seq_in_file_with_length(f'{path_to_outdir}long_sequence.fasta', [read], 0, 1111111)
-            run_minimap228(long_sequence_file=f"{path_to_outdir}long_sequence.fasta", 
-                           short_sequence_file=f"{path_to_outdir}short_sequence.fasta", 
-                           output_file=f"{path_to_outdir}alignments_{index1}_{index}.paf", 
+            if index == index1:
+                list_border.append({
+                    "start_long": 0, 
+                    "start_short": 0, 
+                })
+                continue
+            elif index1 > index:
+                paf_file_path = os.path.join(path_to_outdir, f'alignments_{index}_{index1}.paf')  
+                alignments = parse_paf(paf_file_path)
+                if alignments:
+                    for alignment in alignments:
+                        list_border.append({
+                            "start_long": alignment['target_start'], 
+                            "start_short": alignment['query_start'], 
+                        })
+                continue
+
+            write_seq_in_file_with_length(os.path.join(path_to_outdir, 'long_sequence.fasta'), [read], 0, 1111111)
+            run_minimap228(long_sequence_file=os.path.join(path_to_outdir, 'long_sequence.fasta'), 
+                           short_sequence_file=os.path.join(path_to_outdir, 'short_sequence.fasta'), 
+                           output_file=os.path.join(path_to_outdir, f'alignments_{index1}_{index}.paf'), 
                            path_to_minimap2=path_to_minimap2)
-            paf_file_path = f'{path_to_outdir}alignments_{index1}_{index}.paf'  # Укажите путь к вашему PAF файлу
+            paf_file_path = os.path.join(path_to_outdir, f'alignments_{index1}_{index}.paf')  
             alignments = parse_paf(paf_file_path)
-            #print(alignments)
             if alignments:
                 for alignment in alignments:
                     list_border.append({
                         "start_long": alignment['target_start'], 
-                        "end_long": alignment['target_end'],
-                        "length_long": alignment['length_2'],
                         "start_short": alignment['query_start'], 
-                        "end_short": alignment['query_end'],
-                        "length_short": alignment['length_1'],
                     })
-                    list_positive_or_negative.append(alignment['positive_or_negative'])
             else:
                 continue
         list_all_border.append(list_border)
-        list_all_positive_or_negative.append(list_positive_or_negative)
 
-    #for i in list_all_border:
-        #print(i)
-
-    #for i in list_all_positive_or_negative:
-        #print(i)
 
     list_shifts = []
     # Вычисляем смещения
     for i in list_all_border:
         list_shifts.append(compute_shifts(i))
 
-    #print(list_shifts)
 
-    # Применяем функцию
     list_adjust_shifts = []
     for i in list_shifts:
         list_adjust_shifts.append(adjust_shifts(i))
 
-    #print(list_adjust_shifts)
 
-    #for i in list_adjust_shifts:
-    #   for j in i:
-            #print(j['shift'], sep=' ', end=' ')
-        #print()
-
-    # Вызов функции и вывод результатов
+    
     median_shifts = compute_median_shifts(list_adjust_shifts)
-    list_med_real = []
-    for index, seq_num in enumerate(sorted(median_shifts.keys())):
-        #print(f"Sequence Number {seq_num}: Median Shift = {median_shifts[seq_num]}")
-        list_med_real.append([int(median_shifts[seq_num])])
+
 
     sequence = read_fasta_start_pos(file_reads)
 
     for i in range(len(sequence)):
         sequence[i] = '-' * median_shifts[i + 1] + sequence[i]
 
-    write_seq_in_file_with_length(file_out, sequence, 0, 11111111)
+    write_seq_in_file_with_length(file_out, sequence, 0, 0)
 
-    #for i in sequence:
-        #print(i)
+    return
 
-    return list_med_real, list_all_positive_or_negative
+
+
+
+
+def start_pos_positive_or_negative(file_reads, path_to_minimap2, path_to_outdir):
+    """
+    Выравнивает все последовательности из файла file_reads и сохраняет результат в file_out.
+    Аргументы:
+        file_reads (str): Путь к файлу с исходными последовательностями в формате FASTA.
+        file_out (str): Путь к файлу для сохранения выровненных последовательностей.
+    Возвращает:
+        tuple: (list_med_real, list_all_positive_or_negative)
+    """
+    reads = read_fasta_start_pos(file_reads)
+    list_all_positive_or_negative = []
+    for index1, read_align in enumerate(reads):
+        list_positive_or_negative = []
+        write_seq_in_file_with_length(os.path.join(path_to_outdir, 'short_sequence.fasta'), [read_align], 0, 1111111)
+        for index, read in enumerate(reads):
+            if index == index1:
+                list_positive_or_negative.append('+')
+                continue
+            elif index1 > index:
+                list_positive_or_negative.append(list_all_positive_or_negative[index][index1])
+                continue
+            write_seq_in_file_with_length(os.path.join(path_to_outdir, 'long_sequence.fasta'), [read], 0, 1111111)
+            run_minimap228(long_sequence_file=os.path.join(path_to_outdir, 'long_sequence.fasta'), 
+                           short_sequence_file=os.path.join(path_to_outdir, 'short_sequence.fasta'), 
+                           output_file=os.path.join(path_to_outdir, f'alignments_{index1}_{index}.paf'), 
+                           path_to_minimap2=path_to_minimap2)
+            paf_file_path = os.path.join(path_to_outdir, f'alignments_{index1}_{index}.paf')  
+            alignments = parse_paf(paf_file_path)
+            if alignments:
+                for alignment in alignments:
+                    list_positive_or_negative.append(alignment['positive_or_negative'])
+            else:
+                continue
+        list_all_positive_or_negative.append(list_positive_or_negative)
+
+
+
+    return list_all_positive_or_negative
+
+
+
+
+
+
+
+
 
 
 def filter_fasta_by_length(input_file, min_length=50):
