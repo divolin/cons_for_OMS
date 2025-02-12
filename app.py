@@ -139,7 +139,7 @@ def process_task(task_id, dir_in, dir_out):
         has_adapter = 'adapter' in base_names
         effective_total = total_files - 1 if has_adapter else total_files
 
-        with ProcessPoolExecutor(max_workers=64) as executor:
+        with ProcessPoolExecutor(max_workers=8) as executor:
             futures = {
                 executor.submit(process_file, f, dir_in_container, dir_out_container, adapter_path): f
                 for f in files
