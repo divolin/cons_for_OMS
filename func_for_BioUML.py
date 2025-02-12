@@ -398,7 +398,7 @@ def reverse_complement(dna):
 
 def quality(list_seq):
     list_quality = []
-    for i in range(len(list_seq[0][:-100])):
+    for i in range(len(list_seq[0])):
         count = 0
         for j in range(len(list_seq) - 1):
             if list_seq[0][i] == list_seq[j + 1][i]:
@@ -418,7 +418,7 @@ def convert_to_phred(list_score):
             list_phred += '~'
     return list_phred
 
-def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
+def run_consensus(path_to_reads, path_to_outdir, muscle_bin_full_path):
     if path_to_reads[-3:] == 'sam':
         sequence = read_sam(path_to_reads)
     elif path_to_reads[-5:] == 'fastq':
@@ -435,10 +435,21 @@ def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
     # подсчёт средней длины последовательности, чтобы избавиться от слишком коротких и слишком длинных последовательностей
     alligment = read_seq_from_file('myreads.fasta')
     avg_length = sum(len(word) for word in alligment) / len(alligment)
-    list_allig = []
-    for j, i in enumerate(alligment):
-        if len(i) >= avg_length / 1.6 or len(i) <= avg_length / 0.66:
-            list_allig.append(i)
+    lower_bound = avg_length * 0.7
+    upper_bound = avg_length * 1.3
+    #print(avg_length)
+    #print(lower_bound)
+    #print(upper_bound)
+    #for i in alligment:
+    #    print(len(i))
+    list_allig = [seq for seq in alligment if lower_bound <= len(seq) <= upper_bound]
+    #for i in list_allig:
+    #    print('after', len(i))
+    
+    #list_allig = []
+    #for j, i in enumerate(alligment):
+    #    if len(i) >= avg_length / 1.6 or len(i) <= avg_length / 0.66:
+    #        list_allig.append(i)
     write_seq_in_file_with_length('myreads.fasta', list_allig, 0, 0)
 
     sequence = read_seq_from_file('myreads.fasta')
@@ -459,6 +470,7 @@ def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
     for _ in range(0, max(lengths) * 2, 40):
         list_use_seq = []
         list_use_seq_index = []
+        list_start_gap = []
         for j, seq in enumerate(sequence):
             gap_flag = False
             for i in seq[indi:indi + 80]:
@@ -468,6 +480,7 @@ def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
             if gap_flag:
                 list_use_seq.append(sequence[j])
                 list_use_seq_index.append(j)
+                list_start_gap.append(sequence[j][indi:indi + 80].count('-'))
 
         
         write_seq_in_file_with_length_and_name(f'allig/reads_{indi}-{indi + 80}.fasta', list_use_seq, list_use_seq_index, indi, indi + 80)
@@ -488,7 +501,7 @@ def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
         list_allig_index = []
         list_count_gap = []
         for j, seq in enumerate(alligment):
-            tmp2 = seq[:tmp].count('-')
+            tmp2 = seq[:tmp].count('-') - list_start_gap[j]
             list_count_gap.append(tmp2)
             list_allig_index.append(tmp - tmp2)
         
@@ -517,7 +530,7 @@ def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
     alligment = delete_gap(alligment, count_gap, count_nucl, 51 / 100)
     # Запись множественного выравнивания в файл
     write_seq_in_file_with_length('multiple_alignment.fasta', alligment, 0, 0)
-    a = matrix_of_MDI(alligment)
+    #a = matrix_of_MDI(alligment)
     count = count_nucl_in_cal(alligment)
     b = percetn_of_nucl_in_cal(count)
     consensuss = consensus(alligment, b)
@@ -529,7 +542,7 @@ def run_consensus(path_to_reads, path_to_outdir,muscle_bin_full_path):
     list_seq = consi + multiple_allig
     list_prob_quality = quality(list_seq)
     phred_string = convert_to_phred(list_prob_quality)
-    write_fastq('consensus.fastq', consi[0][:-100], phred_string)
+    write_fastq('consensus.fastq', consi[0], phred_string)
     os.remove('consensus.fasta')
     os.chdir(old_work_dir)
     return
@@ -553,10 +566,9 @@ def run_consensus_compl(path_to_reads, path_to_outdir,muscle_bin_full_path):
     # подсчёт средней длины последовательности, чтобы избавиться от слишком коротких и слишком длинных последовательностей
     alligment = read_seq_from_file('myreads.fasta')
     avg_length = sum(len(word) for word in alligment) / len(alligment)
-    list_allig = []
-    for j, i in enumerate(alligment):
-        if len(i) >= avg_length / 1.6 or len(i) <= avg_length / 0.66:
-            list_allig.append(i)
+    lower_bound = avg_length * 0.7
+    upper_bound = avg_length * 1.3
+    list_allig = [seq for seq in alligment if lower_bound <= len(seq) <= upper_bound]
     write_seq_in_file_with_length('myreads.fasta', list_allig, 0, 0)
 
     sequence = read_seq_from_file('myreads.fasta')
@@ -634,7 +646,7 @@ def run_consensus_compl(path_to_reads, path_to_outdir,muscle_bin_full_path):
     alligment = delete_gap(alligment, count_gap, count_nucl, 51 / 100)
     # Запись множественного выравнивания в файл
     write_seq_in_file_with_length('multiple_alignment_compl.fasta', alligment, 0, 0)
-    a = matrix_of_MDI(alligment)
+    #a = matrix_of_MDI(alligment)
     count = count_nucl_in_cal(alligment)
     b = percetn_of_nucl_in_cal(count)
     consensuss = consensus(alligment, b)
@@ -646,7 +658,7 @@ def run_consensus_compl(path_to_reads, path_to_outdir,muscle_bin_full_path):
     list_seq = consi + multiple_allig
     list_prob_quality = quality(list_seq)
     phred_string = convert_to_phred(list_prob_quality)
-    write_fastq('consensus_compl.fastq', consi[0][:-100], phred_string)
+    write_fastq('consensus_compl.fastq', consi[0], phred_string)
     os.remove('consensus_compl.fasta')
     os.chdir(old_work_dir)
 
@@ -728,5 +740,5 @@ def consensus_final(muscle_bin_full_path, path_out, name_consensus):
     #os.remove('tmp.fasta')
     #os.remove('tmp_allig.fasta')
 
-    write_fastq(path_out+name_consensus, consi, phred)
+    write_fastq(os.path.join(path_out, name_consensus), consi, phred)
     os.chdir(old_work_dir)
